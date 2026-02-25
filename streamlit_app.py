@@ -450,15 +450,15 @@ def render_deploy_page() -> None:
     st.markdown(
         """
 Use `setup-streamlit.sh` with a URL base path so the app can live under your site,
-for example `/dev/handwriting`.
+for example `https://handwriting.kooexperience.com/`.
 """
     )
 
     st.code(
         "\n".join(
             [
-                "APP_BASE_PATH=dev/handwriting \\",
-                "PUBLIC_URL=https://your-domain.com \\",
+                "APP_BASE_PATH= \\",
+                "PUBLIC_URL=https://handwriting.kooexperience.com \\",
                 "MNIST_API_BASE_URL=http://10.0.0.3:8081 \\",
                 "./setup-streamlit.sh",
             ]

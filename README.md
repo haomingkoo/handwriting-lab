@@ -58,16 +58,16 @@ uv run --group backend uvicorn mnist_fastapi.main:APP --app-dir src --reload
 
 ---
 
-## Deploying the app under `/dev/` route
+## Deploying the app under your custom domain
 
 `setup-streamlit.sh` is now parameterized so the same script works for local,
 cpubox/devbox bridge mode, and a website path prefix.
 
-### Example: host app at `https://your-domain.com/dev/handwriting`
+### Example: host app at `https://handwriting.kooexperience.com/`
 
 ```bash
-APP_BASE_PATH=dev/handwriting \
-PUBLIC_URL=https://your-domain.com \
+APP_BASE_PATH= \
+PUBLIC_URL=https://handwriting.kooexperience.com \
 MNIST_API_BASE_URL=http://10.0.0.3:8081 \
 ./setup-streamlit.sh
 ```
@@ -85,7 +85,7 @@ HOST_PORT=8123 \
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `APP_BASE_PATH` | `dev/handwriting` | URL prefix for Streamlit (`/dev/handwriting`) |
+| `APP_BASE_PATH` | empty | Optional URL path prefix for Streamlit (leave empty for custom domain root) |
 | `PUBLIC_URL` | empty | Printed public URL helper |
 | `MNIST_API_BASE_URL` | `http://10.0.0.3:8081` | FastAPI backend URL |
 | `ENABLE_SOCAT_BRIDGE` | `false` | Start local socat bridge |
