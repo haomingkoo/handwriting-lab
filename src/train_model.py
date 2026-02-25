@@ -4,9 +4,8 @@ This script is for training a model on the MNIST dataset.
 Key ideas:
 - Hydra loads conf/train_model.yaml into `args` (an OmegaConf DictConfig).
 - MLflow is used to track runs, params, metrics, and artifacts.
-    - Script is Cloud Run friendly:
-    - CI/CD can `cd /home/aisg/mnist` so relative paths like ./data/... resolve.
-    - Logging config is resolved via hydra.utils.get_original_cwd() (repo root), not Hydra run dir.
+- Script is Cloud Run friendly with relative project paths.
+- Logging config is resolved via hydra.utils.get_original_cwd() (repo root), not Hydra run dir.
 - Produces a plain PyTorch state_dict artifact at ./data/model.pth (for your pipeline).
 - Logs that ./data/model.pth into MLflow under artifact path "data/" (so pull-model can download it).
 - Optionally logs an MLflow-native PyTorch model ("model/") and registers it (for registry workflows).

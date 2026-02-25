@@ -21,7 +21,7 @@ registered_model_name: ${oc.env:MODEL_NAME,haoming-koo-mnist-training}
 # -------------------------
 # Data / Device
 # -------------------------
-data_dir_path: ${oc.env:DATA_DIR_PATH,/home/aisg/mnist/data/processed/mnist-pngs-data-aisg-processed}
+data_dir_path: ${oc.env:DATA_DIR_PATH,data/processed/mnist-pngs-data-aisg-processed}
 no_cuda: true
 no_mps: true
 
