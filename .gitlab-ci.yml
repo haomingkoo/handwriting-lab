@@ -1,0 +1,313 @@
+## Overview
+## This sample .gitlab-ci.yml file contains predefined jobs
+##
+## The pipeline should follow this flow
+## Build environment (tests) -> Lint/Test -> Build and Push Images -> Deploy Training -> Check Model Version -> Deploy Inference
+##
+## You DO NOT need to make major edits to the predefined components/jobs except to replace <placeholders> values.
+## Missing <placeholders> values will result in a failed pipeline, so go through the entire file SLOWLY.
+## Pay close attention to the inline comments.
+## If you find that you are manually configuring most of the CI/CD pipeline, you are doing something very wrong.
+##
+## For the container images, `conf` should be copied along with relevant scripts in `src`
+## Your training container should only mount data for data folder
+## While your inference container should only mount GCS for the inference model folder (/bucket/<username>/inference)
+##
+## Reach out to the mentors if you are stuck at this for too long!
+
+## Keep tags `on-prem` to use on-premise runners, gcp to use Google Cloud runners.
+## DO NOT remove `dind` tag for this assignment
+default:
+  tags:
+    - on-prem
+    - dind
+
+## Environment Variables only for this pipeline    
+variables:
+  TEST_VENV: .venv 
+  MODEL_FILENAME: model.pth 
+  MLFLOW_ARTIFACT_PATH: data/${MODEL_FILENAME}
+  
+
+## Pipeline Stages - execute in order from top to bottom
+stages:
+  - build
+  - test              
+  - build-images      
+  - deploy-train
+  - check
+  - deploy-inference
+
+## Include CICD components 
+## Catalog - https://gitlab.aisingapore.net/explore/catalog
+## CI - https://gitlab.aisingapore.net/templates/cicd-workflow/continuous-integration
+## CD - https://gitlab.aisingapore.net/templates/cicd-workflow/continuous-deployment
+include:
+  - component: $CI_SERVER_FQDN/templates/cicd-workflow/continuous-integration/build-uv@0.1.2
+    inputs:
+      job_name: uv-env:build
+      stage: build
+      image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+      requirements_file: pyproject.toml
+      venv_directory: $TEST_VENV
+
+  ## Fill with other CI Components for test stage (ruff-lint, pytest)
+  ## Ruff linting for code quality checks
+  - component: $CI_SERVER_FQDN/templates/cicd-workflow/continuous-integration/ruff-lint@0.1.2
+    inputs:
+      job_name: ruff-lint:test
+      stage: test
+      image: python:3.12-slim
+      venv_directory: $TEST_VENV
+
+  ## Pytest for unit tests
+  - component: $CI_SERVER_FQDN/templates/cicd-workflow/continuous-integration/pytest@0.1.2
+    inputs:
+      job_name: pytest:test
+      stage: test
+      image: python:3.12-slim
+      venv_directory: $TEST_VENV
+
+  ## CD Component for build-images to build training image to Artifact Registry
+  - component: $CI_SERVER_FQDN/templates/cicd-workflow/continuous-deployment/buildkit-build-push@0.1.7
+    inputs:
+      job_name: build-training-image
+      stage: build-images
+      containerfile: train_model.Containerfile
+      image_name: mnist-training-haoming_koo
+      image_tag: latest
+      platform: linux/amd64
+      registry: asia-southeast1-docker.pkg.dev
+      destination: asia-southeast1-docker.pkg.dev/${GCP_PROJECT_ID}/aiap21-aut0/mnist-training-haoming_koo
+      registry_username: _json_key_base64
+      registry_access_key: ${GCP_SERVICE_ACCOUNT_KEY}
+
+  ## CD Component for build-images to build FastAPI image
+  - component: $CI_SERVER_FQDN/templates/cicd-workflow/continuous-deployment/buildkit-build-push@0.1.7
+    inputs:
+      job_name: build-inference-image
+      stage: build-images
+      containerfile: inference.Containerfile
+      image_name: mnist-inference-haoming_koo
+      image_tag: latest
+      platform: linux/amd64
+      registry: asia-southeast1-docker.pkg.dev
+      destination: asia-southeast1-docker.pkg.dev/${GCP_PROJECT_ID}/aiap21-aut0/mnist-inference-haoming_koo
+      registry_username: _json_key_base64
+      registry_access_key: ${GCP_SERVICE_ACCOUNT_KEY}
+
+  ## CD Component to create Cloud Run job to execute training
+  ## IMPORTANT: command must be a single comma-separated string, no line breaks within the string
+  - component: $CI_SERVER_FQDN/templates/cicd-workflow/continuous-deployment/gcloud-run-jobs@0.1.7
+    inputs:
+      job_name: mnist-train-model
+      stage: deploy-train
+      runner_image: google/cloud-sdk:alpine
+      gcp_project_id: ${GCP_PROJECT_ID}
+      gcp_region: asia-southeast1
+      gcp_service_account_key: ${GCP_SERVICE_ACCOUNT_KEY}
+      cloud_run_job_name: haoming-koo-mnist-training-${CI_COMMIT_SHORT_SHA}
+      cloud_run_service_account: "aisg-100e-sa@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
+      cpu: "2" ## do not change
+      memory: 8G ## do not change
+      image: asia-southeast1-docker.pkg.dev/${GCP_PROJECT_ID}/aiap21-aut0/mnist-training-haoming_koo:latest
+      add_volumes: "name=data,type=nfs,location=10.0.0.2:/data" ## do not change
+      add_volume_mounts: "volume=data,mount-path=/data" ## do not change
+      ## set_env_vars: Comma-separated KEY=VALUE pairs, no spaces around commas
+      set_env_vars: MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI},MLFLOW_TRACKING_USERNAME=${MLFLOW_TRACKING_USERNAME},MLFLOW_TRACKING_PASSWORD=${MLFLOW_TRACKING_PASSWORD},MODEL_NAME=${MODEL_NAME},MLFLOW_EXPERIMENT_NAME=${MLFLOW_EXPERIMENT_NAME}
+      command: 
+        '/bin/sh,-c,ln -s /data/workspaces/haoming_koo/aiap-dsp-mlops-mnist/data /home/aisg/mnist/data &&
+          python src/train_model.py'
+      args: ""
+      network: otherside ## do not change
+      subnet: internal ## do not change
+      network_tags: internal ## do not change
+      max_retries: "1"
+      task_timeout: "1800s"
+
+  ##  Use `gcloud-run-deploy` for deploy-inference stage
+  ## Cloud Run Services provide HTTP endpoints (unlike Jobs which are batch/one-off)
+  - component: $CI_SERVER_FQDN/templates/cicd-workflow/continuous-deployment/gcloud-run-deploy@0.1.7
+    inputs:
+      job_name: mnist-deploy-inference ## Must be dashes, no underscore
+      stage: deploy-inference
+      runner_image: google/cloud-sdk:alpine
+      gcp_project_id: ${GCP_PROJECT_ID}
+      gcp_region: asia-southeast1
+      gcp_service_account_key: ${GCP_SERVICE_ACCOUNT_KEY}
+      cloud_run_service_name: haoming-koo-mnist-inference
+      cloud_run_service_account: "aisg-100e-sa@${GCP_PROJECT_ID}.iam.gserviceaccount.com" 
+      image: asia-southeast1-docker.pkg.dev/${GCP_PROJECT_ID}/aiap21-aut0/mnist-inference-haoming_koo:latest
+      cpu: 1
+      memory: 2G
+      min_instances: "1" ## Scale to zero when no traffic
+      max_instances: "3" ## Maximum concurrent instances
+      ## Mount GCS bucket to access trained model
+      add_volumes: "name=model,type=cloud-storage,bucket=${GCP_PROJECT_ID};" 
+      add_volume_mounts: "volume=model,mount-path=/bucket"
+      ## PRED_MODEL_PATH: where FastAPI finds model.pth, PRED_MODEL_UUID: version tracking
+      set_env_vars: PRED_MODEL_PATH=/bucket/haoming_koo/inference/model.pth,PRED_MODEL_UUID=${MODEL_VER}
+      command: ""
+      args: ""
+      network: otherside ## do not change
+      subnet: internal ## do not change
+      timeout: "180s"
+
+
+###########################################
+## Definitions below overwrite fields in the corresponding job from the components above
+## Add other overwrites accordingly
+## Name of the job here have to match the job name specified in the inputs
+###########################################
+
+uv-env:build:
+  script:
+    - echo "Building uv Environment"
+    ## Install dependencies for dev, training, and backend groups
+    - uv sync --group dev --group training --group backend
+  rules:
+    ## Run on push to main branch
+    - if: '$CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"'
+    ## Also run on push to dev branch for testing
+    - if: '$CI_COMMIT_REF_NAME == "dev" && $CI_PIPELINE_SOURCE == "push"'
+
+ruff-lint:test:
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_COMMIT_REF_NAME == "dev" && $CI_PIPELINE_SOURCE == "push"'
+
+pytest:test:
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"'  
+    - if: '$CI_COMMIT_REF_NAME == "dev" && $CI_PIPELINE_SOURCE == "push"'
+
+build-training-image:
+  rules:
+    ## Only build images on main branch, not dev
+    - if: '$CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"'
+  tags:
+    ## Use on-premise runners with Docker-in-Docker for image building
+    - on-prem ## do not change 
+    - dind ## do not change
+
+build-inference-image:
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"'
+  tags:
+    - on-prem ## do not change 
+    - dind ## do not change
+
+mnist-train-model:
+  rules:
+    ## Train only when pushing to main (not on schedule)
+    - if: '$CI_COMMIT_REF_NAME == "main" && $CI_PIPELINE_SOURCE == "push"'
+
+mnist-deploy-inference:
+  rules:
+    ## Only run on scheduled pipelines with model_update scope
+    ## This is triggered by the scheduled pipeline (e.g., every 6 hours)
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_REF_PROTECTED && $JOB_SCOPE == "model_update"'
+  needs:
+    ## Must wait for upload-model to complete successfully
+    - job: upload-model
+      optional: false
+
+
+## You can also specify custom jobs here (i.e. not included in templates)
+## Below is one such example, DO NOT EDIT - review it as you will need to setup 
+## the ENV VARs as CICD variables accordingly to get this job working.
+
+###########################################
+## DO NOT EDIT BELOW
+###########################################
+
+## Custom Jobs - Scheduled Model Update Pipeline
+## These jobs check for new models and redeploy inference if needed
+
+cron-check:
+  stage: check
+  image: alpine:3
+  before_script:
+    - apk add -qqq jq curl
+  script:
+    ## Query MLflow for latest model version
+    - >-
+      export MODEL_LATEST_VER=$(curl -X GET \
+        -u "${MLFLOW_TRACKING_USERNAME}:${MLFLOW_TRACKING_PASSWORD}" \
+        -H "Content-Type: application/json" \
+        "${MLFLOW_TRACKING_URI}/api/2.0/mlflow/registered-models/get-latest-versions?name=${MODEL_NAME}" \
+        | jq -r '.model_versions[0].version')
+      echo "Latest model version for '${MODEL_LATEST_VER}"
+    ## Compare with current deployed version, cancel if same
+    - >-
+      if [[ ${MODEL_VER} == ${MODEL_LATEST_VER} ]]; then
+        echo 'Latest model version, nothing to update; cancelling pipeline.'
+        ## cancel current pipeline
+        curl -X POST \
+          -H "PRIVATE-TOKEN: ${CI_TOKEN}" \
+          "https://gitlab.aisingapore.net/api/v4/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/cancel"
+      else
+        ### update project variable via API
+        echo New model version detected - ${MODEL_LATEST_VER}, proceeding to redploy .
+        curl --request PUT \
+          --header "PRIVATE-TOKEN: ${CI_TOKEN}" \
+          --form "value=${MODEL_LATEST_VER}" \
+          "https://gitlab.aisingapore.net/api/v4/projects/${CI_PROJECT_ID}/variables/MODEL_VER"
+      fi
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_REF_PROTECTED && $JOB_SCOPE == "model_update"
+  dependencies: []
+###########################################
+## DO NOT EDIT ABOVE
+###########################################
+
+## Download champion model from MLflow Registry
+## REPLACE <registered-model-name> with your model name in MLflow Registry
+pull-model:
+  stage: deploy-inference
+  image: ghcr.io/mlflow/mlflow:v3.1.0
+  script:
+      ## @champion alias points to production-ready model version
+    - >-
+      mlflow artifacts download -u "models:/${MLFLOW_EXPERIMENT_NAME}@champion/$MLFLOW_ARTIFACT_PATH" --dst-path .
+  artifacts:
+    paths:
+      - $MLFLOW_ARTIFACT_PATH
+  needs:
+    - job: cron-check
+      optional: false
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_REF_PROTECTED && $JOB_SCOPE == "model_update"
+
+## Upload model to GCS bucket for inference service
+## REPLACE <your-username>
+upload-model:
+  stage: deploy-inference
+  image: google/cloud-sdk:alpine
+  before_script:
+    ## Validate required environment variable
+    - |
+      set -e
+      if [ -z "${GCP_PROJECT_ID}" ]; then
+        echo "Error: GCP_PROJECT_ID is not set. Please set it as a GitLab CI/CD variable."
+        exit 1
+      fi
+
+      if [ -z "${GCP_SERVICE_ACCOUNT_KEY}" ]; then
+        echo "Error: GCP_SERVICE_ACCOUNT_KEY input is not set. Please set it as a GitLab CI/CD variable."
+        exit 1
+      fi
+    ## Authenticate with GCP using base64-decoded service account key  
+    - echo ${GCP_SERVICE_ACCOUNT_KEY} | base64 -d > /tmp/gcp_sa_key.json
+    - gcloud auth activate-service-account --key-file=/tmp/gcp_sa_key.json
+    - gcloud config set project ${GCP_PROJECT_ID}
+  script:
+    ## Copy model.pth to GCS bucket where inference service expects it
+    - >-
+      gcloud storage cp $MLFLOW_ARTIFACT_PATH gs://aiap21-aut0/haoming_koo/inference/
+  needs:
+      ## Requires model artifact from pull-model job
+    - job: pull-model
+      artifacts: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_REF_PROTECTED && $JOB_SCOPE == "model_update"

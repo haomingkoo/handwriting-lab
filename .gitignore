@@ -1,0 +1,11 @@
+data/
+mlruns/
+.venv/
+logs/
+models/
+__pycache__/
+*.pyc
+.DS_Store
+socat*.log
+outputs/
+models_local/

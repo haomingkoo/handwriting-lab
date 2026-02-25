@@ -1,0 +1,6 @@
+# conf/process_data.yaml
+
+raw_data_dir: ./data/mnist-pngs-data-aisg
+processed_data_dir: ./data/processed/mnist-pngs-data-aisg-processed
+log_dir: ./logs
+log_file: process_data.log #not used in A3P1 but 
