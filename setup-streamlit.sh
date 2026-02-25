@@ -6,7 +6,7 @@ set -euo pipefail
 # Supports:
 # - local direct hosting
 # - optional socat bridge mode (devbox -> cpubox)
-# - URL path prefixes such as /dev/handwriting for website integration
+# - optional URL path prefixes for website integration
 # ---------------------------------------------------------------------------
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,7 +20,7 @@ CONTAINER_PORT="${CONTAINER_PORT:-8080}"
 BACKEND_URL="${MNIST_API_BASE_URL:-http://10.0.0.3:8081}"
 
 # Streamlit expects this value without a leading slash.
-APP_BASE_PATH="${APP_BASE_PATH:-dev/handwriting}"
+APP_BASE_PATH="${APP_BASE_PATH:-}"
 APP_BASE_PATH="${APP_BASE_PATH#/}"
 APP_BASE_PATH="${APP_BASE_PATH%/}"
 
