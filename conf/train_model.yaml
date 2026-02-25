@@ -1,0 +1,86 @@
+defaults:
+  - override hydra/sweeper: optuna
+  - override hydra/sweeper/sampler: tpe
+
+# -------------------------
+# MLflow
+# -------------------------
+setup_mlflow: true
+mlflow_autolog: false
+
+# Prefer Cloud Run env var, fall back to local for dev.
+mlflow_tracking_uri: ${oc.env:MLFLOW_TRACKING_URI,./mlruns}
+
+# Prefer env var if you set it in CI/CD. Otherwise use the YAML default.
+mlflow_exp_name: ${oc.env:MLFLOW_EXPERIMENT_NAME,haoming-koo-mnist-training}
+mlflow_run_name: ${oc.env:MLFLOW_RUN_NAME,cloudrun_train}
+
+# Use CI/CD MODEL_NAME if provided, else default here.
+registered_model_name: ${oc.env:MODEL_NAME,haoming-koo-mnist-training}
+
+# -------------------------
+# Data / Device
+# -------------------------
+data_dir_path: ${oc.env:DATA_DIR_PATH,/home/aisg/mnist/data/processed/mnist-pngs-data-aisg-processed}
+no_cuda: true
+no_mps: true
+
+# -------------------------
+# Training defaults (single run)
+# Optuna overrides these during --multirun
+# -------------------------
+train_bs: 64
+test_bs: 1000
+
+optimizer: "adam"     # adam | sgd | adadelta
+lr: 0.001             # default; Optuna overrides
+gamma: 0.7            # scheduler gamma
+
+weight_decay: 0.0
+momentum: 0.9         # used only when optimizer=sgd
+
+seed: 1111
+epochs: 3
+log_interval: 100
+dry_run: false
+
+model_checkpoint_interval: 2
+model_checkpoint_dir_path: ${oc.env:CHECKPOINT_DIR,./models}
+log_dir: ${oc.env:LOG_DIR,./logs}
+
+# -------------------------
+# Training-time augmentation
+# Use these for robustness to rotated/inverted handwriting.
+# -------------------------
+enable_train_augmentation: false
+train_rotation_degrees: 0.0
+train_rotation_prob: 0.0
+train_affine_prob: 0.0
+train_affine_translate_x: 0.0
+train_affine_translate_y: 0.0
+train_affine_scale_min: 1.0
+train_affine_scale_max: 1.0
+train_affine_shear_degrees: 0.0
+train_perspective_prob: 0.0
+train_perspective_distortion_scale: 0.0
+train_invert_prob: 0.0
+
+resume: false
+
+# -------------------------
+# Optuna Sweeper (Hydra)
+# -------------------------
+hydra:
+  sweeper:
+    sampler:
+      seed: 55
+    direction: ["minimize", "maximize"]
+    study_name: "image-classification"
+    storage: null
+    n_trials: 12
+    n_jobs: 1
+    params:
+      optimizer: choice(adam)
+      lr: range(0.0005, 0.005, step=0.0005)
+      gamma: choice(0.6, 0.7, 0.8, 0.9)
+      weight_decay: choice(0.0, 1e-4, 1e-3)

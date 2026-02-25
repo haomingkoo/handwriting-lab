@@ -1,0 +1,8 @@
+streamlit
+streamlit-drawable-canvas
+pillow
+requests
+numpy
+google-auth
+pandas
+torch==2.6.0
