@@ -287,6 +287,31 @@
       .layout { grid-template-columns: 1fr; }
       .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
+
+    @media (max-width: 700px) {
+      .container { padding: 0 14px 28px; }
+      nav {
+        padding: 20px 0 14px;
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .nav-links { gap: 12px; }
+      .hero { padding: 8px 0 16px; }
+      .panel { padding: 14px; }
+      .btn-row { display: grid; grid-template-columns: 1fr; }
+      .btn { width: 100%; height: 44px; }
+      .metrics { grid-template-columns: 1fr; }
+      table { min-width: 620px; }
+      .guide-box { max-height: none; }
+    }
+
+    @media (max-width: 480px) {
+      .tab-btn { width: 100%; height: 40px; }
+      .hero-title { font-size: clamp(28px, 9vw, 40px); }
+      .canvas-wrap { max-width: 100%; }
+      .panel-title { letter-spacing: .1em; }
+    }
   </style>
 </head>
 <body>
