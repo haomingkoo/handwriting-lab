@@ -40,8 +40,9 @@ FastAPI (`src/mnist_fastapi`) loads `PRED_MODEL_PATH` at startup and serves:
 - `POST /api/v1/model/predict`
 - `POST /api/v1/model/batch`
 - `GET /api/v1/model/version`
+- `GET /` (custom handwriting web UI)
 
-Streamlit is a frontend client that calls these endpoints.
+The custom web frontend calls these endpoints directly.
 
 ## 6. UI Prediction Flow
 1. User draws digit in browser canvas
@@ -57,7 +58,7 @@ Run:
 Output:
 - `reports/evaluation_latest.json`
 
-The Streamlit app reads this file and displays:
+The web app reads this file and displays:
 - confusion matrix table
 - per-class precision/recall/F1 table
 - top misclassification pairs

@@ -1,11 +1,11 @@
 """Module containing definitions and workflows for FastAPI's application endpoints."""
 
+import io
 import logging
-import os
 
 import fastapi
 import torchvision
-from PIL import Image
+from PIL import Image, ImageOps
 
 import mnist_fastapi
 from mnist_fastapi.deps import PRED_MODEL, DEVICE
@@ -18,6 +18,22 @@ ROUTER = fastapi.APIRouter()
 # Skipped the below two using from above
 #PRED_MODEL = <load from deps.py>
 #DEVICE = <load from deps.py>
+
+
+def _prepare_image_tensor(image_bytes: bytes):
+    """Decode and normalize an uploaded image to model tensor format."""
+    image = Image.open(io.BytesIO(image_bytes))
+    image = ImageOps.exif_transpose(image).convert("L")
+    if image.size != (28, 28):
+        image = image.resize((28, 28), Image.Resampling.LANCZOS)
+
+    image_tensor = torchvision.transforms.functional.to_tensor(image)
+
+    # Auto-invert white-background sketches to MNIST-like black background.
+    if float(image_tensor.mean().item()) > 0.5:
+        image_tensor = 1.0 - image_tensor
+
+    return image_tensor
 
 ## Create a routing method for "/predict" endpoint.
 ## Since the MNIST Classifier takes an image as an input, the user accessing the
@@ -47,31 +63,28 @@ def predict(image_file: fastapi.UploadFile = fastapi.File(...)):
 
     try:
         logger.info("Received image for inference: %s", image_file.filename)
-        
-        # Persist file temporarily to disk
         contents = image_file.file.read()
-        with open(image_file.filename, "wb") as buffer:
-            buffer.write(contents)
-
-        # Load and preprocess image
-        image = Image.open(image_file.filename)
-        image = torchvision.transforms.functional.to_grayscale(image)
-        image = torchvision.transforms.functional.to_tensor(image)
+        image_tensor = _prepare_image_tensor(contents)
 
         # Model inference
-        output = PRED_MODEL(image.unsqueeze(0).to(DEVICE))
+        output = PRED_MODEL(image_tensor.unsqueeze(0).to(DEVICE))
         pred = output.argmax(dim=1, keepdim=True)
+        confidence = float(output.exp().max().item())
         pred_str = str(int(pred[0]))
 
         ## what data would you think the user would like to see
         result_dict["data"].append(
             {
-                "filename": image_file.filename,
+                "filename": image_file.filename or "uploaded.png",
                 "prediction": pred_str,
+                "confidence": round(confidence, 4),
             }
         )
         logger.info(
-            "Prediction for image filename %s: %s", image_file.filename, pred_str
+            "Prediction for image filename %s: %s (confidence=%.4f)",
+            image_file.filename,
+            pred_str,
+            confidence,
         )
 
     except Exception as error:
@@ -80,7 +93,6 @@ def predict(image_file: fastapi.UploadFile = fastapi.File(...)):
 
     finally:
         image_file.file.close()
-        os.remove(image_file.filename)
 
     return result_dict
 
@@ -111,5 +123,4 @@ def model_version():
         served.
     """
     return {"data": {"model_uuid": mnist_fastapi.config.SETTINGS.PRED_MODEL_UUID}}
-
 

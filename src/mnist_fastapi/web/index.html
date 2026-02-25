@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Handwriting Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808;
+      --surface: #111111;
+      --surface-2: #0d0d0d;
+      --border: #1e1e1e;
+      --accent: #3b82f6;
+      --accent-dim: rgba(59,130,246,.12);
+      --text: #f0f0f0;
+      --muted: #6b7280;
+      --good: #22c55e;
+      --bad: #ef4444;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 60% 10%, rgba(59,130,246,.08) 0%, transparent 55%),
+        radial-gradient(rgba(255,255,255,.045) 1px, transparent 1px);
+      background-size: 100% 100%, 28px 28px;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 26px 48px; }
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 0 20px;
+    }
+    .nav-logo {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 20px; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      letter-spacing: .02em;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: end;
+      padding: 14px 0 22px;
+      flex-wrap: wrap;
+    }
+    .hero-title {
+      font-size: clamp(32px, 6vw, 56px);
+      line-height: 1.05;
+      letter-spacing: -.03em;
+      font-weight: 700;
+      background: linear-gradient(135deg, #f0f0f0 30%, #3b82f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      color: var(--muted);
+      margin-top: 10px;
+      max-width: 780px;
+    }
+    .chip {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 4px 10px;
+      background: #0c0c0c;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 0 0 18px;
+    }
+    .tab-btn {
+      height: 36px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #0b0b0b;
+      color: var(--muted);
+      padding: 0 14px;
+      font-size: 12.5px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color .2s, color .2s, background .2s;
+    }
+    .tab-btn.active {
+      color: var(--text);
+      border-color: rgba(59,130,246,.45);
+      background: linear-gradient(135deg, rgba(59,130,246,.2), rgba(59,130,246,.08));
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+      padding: 18px;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel-title {
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .canvas-wrap {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      width: 100%;
+      max-width: 620px;
+      touch-action: none;
+    }
+    #drawCanvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      cursor: crosshair;
+      background: #fff;
+    }
+
+    .controls { display: grid; gap: 12px; margin-bottom: 14px; max-width: 620px; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    input[type="range"] { width: 100%; accent-color: #3b82f6; }
+
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0b0b0b;
+      color: var(--text);
+      font-size: 14px;
+      padding: 0 14px;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .btn:hover { border-color: rgba(59,130,246,.4); }
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(59,130,246,.24), rgba(59,130,246,.09));
+      border-color: rgba(59,130,246,.34);
+    }
+
+    .status {
+      min-height: 30px;
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #0b0b0b;
+      padding: 8px 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .status strong { color: var(--text); }
+    .ok { color: var(--good); }
+    .err { color: var(--bad); }
+
+    .preview-grid {
+      display: grid;
+      gap: 10px;
+    }
+    .img-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #090909;
+      overflow: hidden;
+    }
+    .img-title {
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      background: #0d0d0d;
+    }
+    .img-card img {
+      width: 100%;
+      height: auto;
+      display: block;
+      background: repeating-conic-gradient(#101010 0% 25%, #0d0d0d 0% 50%) 50% / 14px 14px;
+      image-rendering: pixelated;
+    }
+    .diag {
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      background: #0b0b0b;
+      white-space: pre-wrap;
+    }
+
+    .metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #0b0b0b;
+      padding: 10px;
+    }
+    .metric .label { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+    .metric .value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-top: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      background: #0f0f0f;
+    }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 8px 10px;
+      font-size: 12px;
+      text-align: left;
+      color: var(--text);
+    }
+    th { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 10px; background: #0d0d0d; }
+
+    .guide-box {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #0b0b0b;
+      padding: 12px;
+      white-space: pre-wrap;
+      font-size: 13px;
+      color: var(--text);
+      max-height: 620px;
+      overflow: auto;
+    }
+
+    @media (max-width: 1024px) {
+      .layout { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav>
+      <a class="nav-logo" href="https://kooexperience.com" target="_blank" rel="noopener">HK</a>
+      <div class="nav-links">
+        <a href="https://kooexperience.com" target="_blank" rel="noopener">Home</a>
+        <a href="https://github.com/haomingkoo/handwriting-lab" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div>
+        <h1 class="hero-title">Handwriting Lab</h1>
+        <p class="hero-sub">Rotation-aware MNIST playground with local inference, evaluation matrices, and training guide.</p>
+      </div>
+      <span class="chip">fastapi + canvas</span>
+    </section>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="playground">Playground</button>
+      <button class="tab-btn" data-tab="evaluation">Evaluation</button>
+      <button class="tab-btn" data-tab="pipeline">Pipeline Guide</button>
+    </div>
+
+    <section class="tab-panel active" id="tab-playground">
+      <div class="layout">
+        <div class="panel">
+          <h2 class="panel-title">Draw and Predict</h2>
+          <div class="controls">
+            <div class="field">
+              <label for="strokeWidth">Stroke Width</label>
+              <input id="strokeWidth" type="range" min="10" max="38" value="20" />
+            </div>
+            <div class="btn-row">
+              <button class="btn" id="clearBtn" type="button">Clear Canvas</button>
+              <button class="btn btn-primary" id="predictBtn" type="button">Predict Digit</button>
+            </div>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="drawCanvas" width="620" height="620" aria-label="Digit drawing canvas"></canvas>
+          </div>
+          <div class="status" id="statusBox">Draw a digit, then click <strong>Predict Digit</strong>.</div>
+        </div>
+
+        <aside class="panel">
+          <h2 class="panel-title">Preview and Diagnostics</h2>
+          <div class="preview-grid">
+            <div class="img-card">
+              <div class="img-title">Canvas Snapshot</div>
+              <img id="rawPreview" alt="Canvas preview" />
+            </div>
+            <div class="img-card">
+              <div class="img-title">Model Input (28x28)</div>
+              <img id="modelPreview" alt="Model input preview" />
+            </div>
+            <div class="diag" id="diagBox">API: /api/v1/model/predict</div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-evaluation">
+      <div class="panel">
+        <h2 class="panel-title">Evaluation Report</h2>
+        <div class="metrics" id="metricCards"></div>
+        <div class="diag" id="evalMeta">Loading evaluation report...</div>
+        <div class="table-wrap">
+          <table id="confusionTable"></table>
+        </div>
+        <div class="table-wrap">
+          <table id="perClassTable"></table>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-pipeline">
+      <div class="panel">
+        <h2 class="panel-title">Training Pipeline</h2>
+        <div class="guide-box" id="guideBox">Loading pipeline guide...</div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+    const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
+    tabButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        tabButtons.forEach((b) => b.classList.remove("active"));
+        tabPanels.forEach((p) => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
+      });
+    });
+
+    const canvas = document.getElementById("drawCanvas");
+    const ctx = canvas.getContext("2d");
+    const strokeSlider = document.getElementById("strokeWidth");
+    const statusBox = document.getElementById("statusBox");
+    const diagBox = document.getElementById("diagBox");
+    const rawPreview = document.getElementById("rawPreview");
+    const modelPreview = document.getElementById("modelPreview");
+    const clearBtn = document.getElementById("clearBtn");
+    const predictBtn = document.getElementById("predictBtn");
+
+    function resetCanvas() {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      rawPreview.removeAttribute("src");
+      modelPreview.removeAttribute("src");
+      statusBox.innerHTML = 'Draw a digit, then click <strong>Predict Digit</strong>.';
+      statusBox.classList.remove("ok", "err");
+    }
+
+    let drawing = false;
+    let lastPoint = null;
+
+    function getCanvasPoint(evt) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (evt.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (evt.clientY - rect.top) * (canvas.height / rect.height);
+      return { x, y };
+    }
+
+    function startDraw(evt) {
+      drawing = true;
+      lastPoint = getCanvasPoint(evt);
+    }
+
+    function moveDraw(evt) {
+      if (!drawing) return;
+      const point = getCanvasPoint(evt);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "#111111";
+      ctx.lineWidth = Number(strokeSlider.value);
+      ctx.beginPath();
+      ctx.moveTo(lastPoint.x, lastPoint.y);
+      ctx.lineTo(point.x, point.y);
+      ctx.stroke();
+      lastPoint = point;
+    }
+
+    function endDraw() {
+      drawing = false;
+      lastPoint = null;
+    }
+
+    canvas.addEventListener("pointerdown", startDraw);
+    canvas.addEventListener("pointermove", moveDraw);
+    canvas.addEventListener("pointerup", endDraw);
+    canvas.addEventListener("pointerleave", endDraw);
+
+    function buildModelInputCanvas() {
+      const src = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = src.data;
+      const threshold = 245;
+      let minX = canvas.width, minY = canvas.height, maxX = -1, maxY = -1;
+
+      for (let y = 0; y < canvas.height; y += 1) {
+        for (let x = 0; x < canvas.width; x += 1) {
+          const i = (y * canvas.width + x) * 4;
+          const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+          if (gray < threshold) {
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+
+      if (maxX < 0 || maxY < 0) return null;
+
+      const pad = 20;
+      minX = Math.max(0, minX - pad);
+      minY = Math.max(0, minY - pad);
+      maxX = Math.min(canvas.width - 1, maxX + pad);
+      maxY = Math.min(canvas.height - 1, maxY + pad);
+
+      const cropW = maxX - minX + 1;
+      const cropH = maxY - minY + 1;
+      const square = Math.max(cropW, cropH);
+
+      const squareCanvas = document.createElement("canvas");
+      squareCanvas.width = square;
+      squareCanvas.height = square;
+      const squareCtx = squareCanvas.getContext("2d");
+      squareCtx.fillStyle = "#ffffff";
+      squareCtx.fillRect(0, 0, square, square);
+      squareCtx.drawImage(
+        canvas,
+        minX, minY, cropW, cropH,
+        Math.floor((square - cropW) / 2),
+        Math.floor((square - cropH) / 2),
+        cropW, cropH
+      );
+
+      const outCanvas = document.createElement("canvas");
+      outCanvas.width = 28;
+      outCanvas.height = 28;
+      const outCtx = outCanvas.getContext("2d");
+      outCtx.fillStyle = "#000000";
+      outCtx.fillRect(0, 0, 28, 28);
+      outCtx.drawImage(squareCanvas, 0, 0, 28, 28);
+
+      const out = outCtx.getImageData(0, 0, 28, 28);
+      for (let i = 0; i < out.data.length; i += 4) {
+        const gray = (out.data[i] + out.data[i + 1] + out.data[i + 2]) / 3;
+        const value = 255 - gray;
+        out.data[i] = value;
+        out.data[i + 1] = value;
+        out.data[i + 2] = value;
+        out.data[i + 3] = 255;
+      }
+      outCtx.putImageData(out, 0, 0);
+      return outCanvas;
+    }
+
+    function setErrorStatus(msg) {
+      statusBox.textContent = msg;
+      statusBox.classList.remove("ok");
+      statusBox.classList.add("err");
+    }
+
+    clearBtn.addEventListener("click", resetCanvas);
+
+    predictBtn.addEventListener("click", async () => {
+      const modelCanvas = buildModelInputCanvas();
+      if (!modelCanvas) {
+        setErrorStatus("No drawing detected. Please draw a digit first.");
+        return;
+      }
+
+      rawPreview.src = canvas.toDataURL("image/png");
+      modelPreview.src = modelCanvas.toDataURL("image/png");
+      statusBox.textContent = "Running inference...";
+      statusBox.classList.remove("ok", "err");
+
+      const requestStarted = performance.now();
+      const modelBlob = await new Promise((resolve) => modelCanvas.toBlob(resolve, "image/png"));
+      const formData = new FormData();
+      formData.append("image_file", modelBlob, "drawing.png");
+
+      try {
+        const response = await fetch("/api/v1/model/predict", {
+          method: "POST",
+          body: formData
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.detail || "Inference request failed.");
+        }
+
+        const result = payload.data && payload.data[0] ? payload.data[0] : null;
+        if (!result) throw new Error("Empty prediction response.");
+        const elapsedMs = Math.round(performance.now() - requestStarted);
+
+        statusBox.innerHTML = `Predicted digit: <strong>${result.prediction}</strong> · confidence: <strong>${(100 * (result.confidence || 0)).toFixed(1)}%</strong>`;
+        statusBox.classList.add("ok");
+        statusBox.classList.remove("err");
+        diagBox.textContent = [
+          "API: /api/v1/model/predict",
+          `File: ${result.filename || "drawing.png"}`,
+          `Latency: ${elapsedMs} ms`,
+          `Confidence: ${(100 * (result.confidence || 0)).toFixed(2)}%`
+        ].join("\n");
+      } catch (error) {
+        setErrorStatus(`Prediction failed: ${error.message}`);
+        diagBox.textContent = `API error: ${error.message}`;
+      }
+    });
+
+    async function loadEvaluation() {
+      const metricCards = document.getElementById("metricCards");
+      const evalMeta = document.getElementById("evalMeta");
+      const confusionTable = document.getElementById("confusionTable");
+      const perClassTable = document.getElementById("perClassTable");
+
+      try {
+        const response = await fetch("/reports/evaluation_latest.json", { cache: "no-cache" });
+        if (!response.ok) throw new Error("report file not found");
+        const report = await response.json();
+
+        const metrics = [
+          ["Accuracy", `${(100 * (report.accuracy || 0)).toFixed(2)}%`],
+          ["Macro Precision", `${(100 * (report.macro_precision || 0)).toFixed(2)}%`],
+          ["Macro Recall", `${(100 * (report.macro_recall || 0)).toFixed(2)}%`],
+          ["Macro F1", `${(100 * (report.macro_f1 || 0)).toFixed(2)}%`],
+          ["Samples", `${report.num_samples || 0}`]
+        ];
+        metricCards.innerHTML = metrics.map(([label, value]) => (
+          `<div class="metric"><div class="label">${label}</div><div class="value">${value}</div></div>`
+        )).join("");
+
+        evalMeta.textContent = [
+          `Generated (UTC): ${report.generated_at_utc || "n/a"}`,
+          `Model: ${report.model_path || "n/a"}`,
+          `Device: ${report.device || "n/a"}`
+        ].join("\n");
+
+        const cm = report.confusion_matrix || [];
+        if (cm.length) {
+          const header = ["", ...Array.from({ length: 10 }, (_, i) => i.toString())];
+          confusionTable.innerHTML = `
+            <thead><tr>${header.map((h) => `<th>${h}</th>`).join("")}</tr></thead>
+            <tbody>${cm.map((row, i) => `<tr><th>${i}</th>${row.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody>
+          `;
+        } else {
+          confusionTable.innerHTML = "<tbody><tr><td>Confusion matrix unavailable.</td></tr></tbody>";
+        }
+
+        const rows = report.per_class_metrics || [];
+        if (rows.length) {
+          perClassTable.innerHTML = `
+            <thead><tr><th>Label</th><th>Precision</th><th>Recall</th><th>F1</th><th>Support</th></tr></thead>
+            <tbody>${rows.map((r) => `<tr><td>${r.label}</td><td>${r.precision}</td><td>${r.recall}</td><td>${r.f1}</td><td>${r.support}</td></tr>`).join("")}</tbody>
+          `;
+        } else {
+          perClassTable.innerHTML = "<tbody><tr><td>Per-class metrics unavailable.</td></tr></tbody>";
+        }
+      } catch (error) {
+        metricCards.innerHTML = "";
+        evalMeta.textContent = `Evaluation report unavailable: ${error.message}`;
+        confusionTable.innerHTML = "";
+        perClassTable.innerHTML = "";
+      }
+    }
+
+    async function loadPipelineGuide() {
+      const guideBox = document.getElementById("guideBox");
+      try {
+        const response = await fetch("/docs/training_pipeline.md", { cache: "no-cache" });
+        if (!response.ok) throw new Error("pipeline doc not found");
+        guideBox.textContent = await response.text();
+      } catch (error) {
+        guideBox.textContent = `Pipeline guide unavailable: ${error.message}`;
+      }
+    }
+
+    resetCanvas();
+    loadEvaluation();
+    loadPipelineGuide();
+  </script>
+</body>
+</html>
