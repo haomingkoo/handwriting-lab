@@ -253,16 +253,20 @@ def _load_local_model(model_path: str, device_pref: str):
         else:
             device = torch.device("cpu")
 
-    checkpoint = torch.load(str(model_file), map_location=device, weights_only=False)
-    model = _build_local_net()
+    checkpoint = torch.load(str(model_file), map_location=device, weights_only=True)
     if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
-        model.load_state_dict(checkpoint["model_state_dict"])
+        state_dict = checkpoint["model_state_dict"]
     elif isinstance(checkpoint, dict):
-        model.load_state_dict(checkpoint)
-    elif hasattr(checkpoint, "state_dict"):
-        model.load_state_dict(checkpoint.state_dict())
+        state_dict = checkpoint
     else:
-        raise TypeError("Unsupported checkpoint format for local inference.")
+        raise TypeError(
+            "Unsupported checkpoint format. Expected a state_dict or dict with 'model_state_dict'."
+        )
+    if not all(isinstance(value, torch.Tensor) for value in state_dict.values()):
+        raise TypeError("Checkpoint state_dict contains non-tensor values.")
+
+    model = _build_local_net()
+    model.load_state_dict(state_dict)
 
     model.to(device)
     model.eval()

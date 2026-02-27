@@ -32,12 +32,27 @@ API_ROUTER.include_router(
 )
 APP.include_router(API_ROUTER, prefix=API_V1_STR)
 
+def _csv_to_list(value: str) -> list[str]:
+    items = [item.strip() for item in value.split(",") if item.strip()]
+    return items or ["*"]
+
+
+cors_origins = _csv_to_list(mnist_fastapi.config.SETTINGS.CORS_ALLOW_ORIGINS)
+cors_methods = _csv_to_list(mnist_fastapi.config.SETTINGS.CORS_ALLOW_METHODS)
+cors_headers = _csv_to_list(mnist_fastapi.config.SETTINGS.CORS_ALLOW_HEADERS)
+cors_allow_credentials = bool(mnist_fastapi.config.SETTINGS.CORS_ALLOW_CREDENTIALS)
+if cors_allow_credentials and cors_origins == ["*"]:
+    LOGGER.warning(
+        "CORS_ALLOW_CREDENTIALS=true with wildcard origin is unsafe; forcing credentials off."
+    )
+    cors_allow_credentials = False
+
 APP.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=cors_origins,
+    allow_credentials=cors_allow_credentials,
+    allow_methods=cors_methods,
+    allow_headers=cors_headers,
 )
 
 APP_ROOT = Path(__file__).resolve().parents[2]

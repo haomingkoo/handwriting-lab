@@ -13,6 +13,11 @@ COPY docs/ ./docs/
 COPY reports/ ./reports/
 COPY artifacts/ ./artifacts/
 
+# Run Streamlit as non-root user.
+RUN adduser --disabled-password --gecos '' appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
 # Expose port
 EXPOSE 8080
 

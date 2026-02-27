@@ -25,6 +25,17 @@ class Settings(BaseSettings):
     PRED_MODEL_UUID: str = "mnist-local-001"
     PRED_MODEL_PATH: str = "artifacts/model.pth"
 
+    # CORS controls (safe defaults for public demo without credentialed cross-site requests)
+    CORS_ALLOW_ORIGINS: str = "*"
+    CORS_ALLOW_CREDENTIALS: bool = False
+    CORS_ALLOW_METHODS: str = "*"
+    CORS_ALLOW_HEADERS: str = "*"
+
+    # Upload guardrails to limit abuse and resource exhaustion
+    MAX_UPLOAD_BYTES: int = 1_048_576
+    MAX_BATCH_FILES: int = 16
+    ALLOWED_IMAGE_CONTENT_TYPES: str = "image/png,image/jpeg,image/jpg"
+
     model_config = SettingsConfigDict(env_file=".env", extra ="ignore")
 
 # Singleton settings object
