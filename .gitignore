@@ -9,3 +9,6 @@ __pycache__/
 socat*.log
 outputs/
 models_local/
+.env
+.streamlit/secrets.toml
+**/secrets.toml

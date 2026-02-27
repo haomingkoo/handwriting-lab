@@ -163,15 +163,20 @@ def load_model(path_to_model, use_cuda, use_mps):
     else:
         device = torch.device("cpu")
 
-    checkpoint = torch.load(path_to_model, weights_only=False, map_location=device)
-
-    if isinstance(checkpoint, torch.nn.Module):
-        loaded_model = checkpoint
+    checkpoint = torch.load(path_to_model, weights_only=True, map_location=device)
+    if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+        state_dict = checkpoint["model_state_dict"]
+    elif isinstance(checkpoint, dict):
+        state_dict = checkpoint
     else:
-        loaded_model = mnist.modeling.models.Net()
-        if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
-            loaded_model.load_state_dict(checkpoint["model_state_dict"])
-        else:
-            loaded_model.load_state_dict(checkpoint)
+        raise TypeError(
+            "Unsupported checkpoint format. Expected a state_dict or dict with 'model_state_dict'."
+        )
+
+    if not all(isinstance(value, torch.Tensor) for value in state_dict.values()):
+        raise TypeError("Checkpoint state_dict contains non-tensor values.")
+
+    loaded_model = mnist.modeling.models.Net()
+    loaded_model.load_state_dict(state_dict)
     loaded_model.to(device)
     return loaded_model, device
