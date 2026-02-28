@@ -44,6 +44,24 @@ FastAPI (`src/mnist_fastapi`) loads `PRED_MODEL_PATH` at startup and serves:
 
 The custom web frontend calls these endpoints directly.
 
+Recommended public-demo deployment is a single FastAPI service using
+`inference.Containerfile`. That service hosts both:
+- the browser UI at `/`
+- the inference API under `/api/v1/model/*`
+
+Recommended runtime env vars:
+- `PRED_MODEL_PATH=artifacts/model.pth`
+- `USE_CUDA=false`
+- `USE_MPS=false`
+- `CORS_ALLOW_ORIGINS=https://handwriting.kooexperience.com,https://kooexperience.com,http://localhost:8000,http://127.0.0.1:8000,http://localhost:8080,http://127.0.0.1:8080`
+- `RATE_LIMIT_ENABLED=true`
+- `RATE_LIMIT_REQUESTS=60`
+- `RATE_LIMIT_WINDOW_SECONDS=60`
+
+Notes:
+- The built-in FastAPI web UI is same-origin with the API, so CORS mainly matters for any separate website calling the API from browser JavaScript.
+- The app-level limiter is per-process and per-IP. Keep host/CDN/WAF rate limiting enabled as well if available.
+
 ## 6. UI Prediction Flow
 1. User draws digit in browser canvas
 2. UI converts image to grayscale 28x28 PNG
@@ -62,3 +80,14 @@ The web app reads this file and displays:
 - confusion matrix table
 - per-class precision/recall/F1 table
 - top misclassification pairs
+
+## 8. Security Controls
+Runtime protections currently in the inference service:
+- state-dict-only model loading for safer checkpoint handling
+- upload validation on inference endpoints (type, size, batch count)
+- restricted browser origins via `CORS_ALLOW_ORIGINS`
+- per-IP app-level throttling on inference `POST` routes
+
+These controls are suitable for a public demo, but infrastructure-side protections
+such as CDN/WAF rate limiting and TLS enforcement should still be enabled in the
+hosting platform.
