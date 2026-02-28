@@ -11,6 +11,7 @@ from fastapi import responses
 from fastapi.middleware.cors import CORSMiddleware
 
 import mnist_fastapi
+from mnist_fastapi.rate_limit import InMemoryRateLimiter
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.info("Setting up logging configuration.")
@@ -31,6 +32,7 @@ API_ROUTER.include_router(
     tags=["model"],
 )
 APP.include_router(API_ROUTER, prefix=API_V1_STR)
+
 
 def _csv_to_list(value: str) -> list[str]:
     items = [item.strip() for item in value.split(",") if item.strip()]
@@ -54,6 +56,75 @@ APP.add_middleware(
     allow_methods=cors_methods,
     allow_headers=cors_headers,
 )
+
+rate_limit_path_prefixes = tuple(
+    _csv_to_list(mnist_fastapi.config.SETTINGS.RATE_LIMIT_PATH_PREFIXES)
+)
+rate_limit_methods = {
+    method.upper() for method in _csv_to_list(mnist_fastapi.config.SETTINGS.RATE_LIMIT_METHODS)
+}
+rate_limiter = InMemoryRateLimiter(
+    limit=int(mnist_fastapi.config.SETTINGS.RATE_LIMIT_REQUESTS),
+    window_seconds=int(mnist_fastapi.config.SETTINGS.RATE_LIMIT_WINDOW_SECONDS),
+)
+
+
+def _get_request_ip(request: fastapi.Request) -> str:
+    """Resolve client IP from common proxy headers or socket peer."""
+    for header_name in ("cf-connecting-ip", "x-real-ip", "x-forwarded-for"):
+        raw_value = (request.headers.get(header_name) or "").strip()
+        if not raw_value:
+            continue
+        if header_name == "x-forwarded-for":
+            return raw_value.split(",")[0].strip()
+        return raw_value
+
+    if request.client and request.client.host:
+        return request.client.host
+    return "unknown"
+
+
+@APP.middleware("http")
+async def enforce_rate_limit(request: fastapi.Request, call_next):
+    """Throttle expensive inference routes per client IP."""
+    if not mnist_fastapi.config.SETTINGS.RATE_LIMIT_ENABLED:
+        return await call_next(request)
+
+    method = request.method.upper()
+    path = request.url.path
+    if method == "OPTIONS":
+        return await call_next(request)
+    if method not in rate_limit_methods:
+        return await call_next(request)
+    if not any(path.startswith(prefix) for prefix in rate_limit_path_prefixes):
+        return await call_next(request)
+
+    client_ip = _get_request_ip(request)
+    limit_key = f"{client_ip}:{path}:{method}"
+    result = rate_limiter.check(limit_key)
+    rate_limit_headers = {
+        "X-RateLimit-Limit": str(result.limit),
+        "X-RateLimit-Remaining": str(result.remaining),
+        "X-RateLimit-Window": str(
+            mnist_fastapi.config.SETTINGS.RATE_LIMIT_WINDOW_SECONDS
+        ),
+    }
+    if not result.allowed:
+        rate_limit_headers["Retry-After"] = str(result.retry_after_seconds)
+        return responses.JSONResponse(
+            status_code=fastapi.status.HTTP_429_TOO_MANY_REQUESTS,
+            content={
+                "detail": (
+                    "Rate limit exceeded. Please wait a moment before retrying."
+                )
+            },
+            headers=rate_limit_headers,
+        )
+
+    response = await call_next(request)
+    for header_name, header_value in rate_limit_headers.items():
+        response.headers[header_name] = header_value
+    return response
 
 APP_ROOT = Path(__file__).resolve().parents[2]
 WEB_INDEX_PATH = APP_ROOT / "src" / "mnist_fastapi" / "web" / "index.html"
