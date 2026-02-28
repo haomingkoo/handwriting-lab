@@ -450,14 +450,52 @@ def render_pipeline_page() -> None:
 
 def render_deploy_page() -> None:
     """Deployment notes for local /dev route and website integration."""
-    st.header("Deploy To /dev Path")
+    st.header("Deployment Notes")
     st.markdown(
         """
-Use `setup-streamlit.sh` with a URL base path so the app can live under your site,
-for example `https://handwriting.kooexperience.com/`.
+Recommended public deployment is the FastAPI service in `inference.Containerfile`.
+That service hosts both the browser UI at `/` and the inference API under
+`/api/v1/model/*`.
 """
     )
 
+    st.subheader("Recommended Railway / FastAPI Deploy")
+    st.markdown(
+        """
+Deploy one service using `inference.Containerfile`, then set the runtime env vars
+below so browser access is limited to your domains and inference requests are throttled.
+"""
+    )
+    st.code(
+        "\n".join(
+            [
+                "PRED_MODEL_PATH=artifacts/model.pth",
+                "USE_CUDA=false",
+                "USE_MPS=false",
+                "CORS_ALLOW_ORIGINS=https://handwriting.kooexperience.com,https://kooexperience.com,http://localhost:8000,http://127.0.0.1:8000,http://localhost:8080,http://127.0.0.1:8080",
+                "RATE_LIMIT_ENABLED=true",
+                "RATE_LIMIT_REQUESTS=60",
+                "RATE_LIMIT_WINDOW_SECONDS=60",
+            ]
+        ),
+        language="bash",
+    )
+    st.markdown(
+        """
+Notes:
+- The built-in FastAPI frontend is same-origin with the API.
+- CORS mainly matters only if another website calls the API from browser JavaScript.
+- App-level throttling is per process and per IP, so keep host/CDN rate limiting enabled too.
+"""
+    )
+
+    st.subheader("Legacy Streamlit /dev Path Helper")
+    st.markdown(
+        """
+If you still want the older Streamlit-only deployment helper for a `/dev` path or
+local bridge setup, `setup-streamlit.sh` still supports it.
+"""
+    )
     st.code(
         "\n".join(
             [
@@ -465,27 +503,6 @@ for example `https://handwriting.kooexperience.com/`.
                 "PUBLIC_URL=https://handwriting.kooexperience.com \\",
                 "MNIST_API_BASE_URL=http://10.0.0.3:8081 \\",
                 "./setup-streamlit.sh",
-            ]
-        ),
-        language="bash",
-    )
-
-    st.subheader("Railway (Simple + Cheap)")
-    st.markdown(
-        """
-Use one Railway service (Streamlit only) with local in-app inference.
-No second backend service needed.
-"""
-    )
-    st.code(
-        "\n".join(
-            [
-                "# train + auto-stage for Railway",
-                "SKIP_PROCESS_DATA=true NO_CUDA=true NO_MPS=false ./scripts/retrain_local_model.sh",
-                "",
-                "# optional Railway env vars",
-                "# MNIST_LOCAL_MODEL_PATH auto-detects /app/artifacts/model.pth",
-                "MNIST_LOCAL_DEVICE=cpu",
             ]
         ),
         language="bash",
