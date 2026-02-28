@@ -135,11 +135,18 @@ cp data/local-model-export/model.pth artifacts/model.pth
 PRED_MODEL_PATH=artifacts/model.pth
 USE_CUDA=false
 USE_MPS=false
+CORS_ALLOW_ORIGINS=https://handwriting.kooexperience.com,https://kooexperience.com,http://localhost:8000,http://127.0.0.1:8000,http://localhost:8080,http://127.0.0.1:8080
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_REQUESTS=60
+RATE_LIMIT_WINDOW_SECONDS=60
 ```
 
 Notes:
 - `PRED_MODEL_PATH` defaults to `artifacts/model.pth`.
 - The FastAPI container binds to `PORT` automatically for Railway.
+- `CORS_ALLOW_ORIGINS` should list the browser origins allowed to call your API.
+- The built-in FastAPI frontend at `/` is same-origin, so CORS is mainly for any separate website calling the API from browser JavaScript.
+- The app-level rate limiter is per-process and per-IP. Keep edge/WAF rate limiting enabled as well if your host supports it.
 
 ---
 
@@ -258,6 +265,10 @@ These must be set as **variables** in the GitLab project (`Settings â†’ CI/CD â†
 | `PRED_MODEL_UUID` | FastAPI container | `mnist-local-001` |
 | `USE_CUDA` | FastAPI container | `false` |
 | `USE_MPS` | FastAPI container | `false` |
+| `CORS_ALLOW_ORIGINS` | FastAPI container | `https://handwriting.kooexperience.com,https://kooexperience.com,...` |
+| `RATE_LIMIT_ENABLED` | FastAPI container | `true` |
+| `RATE_LIMIT_REQUESTS` | FastAPI container | `60` |
+| `RATE_LIMIT_WINDOW_SECONDS` | FastAPI container | `60` |
 | `MLFLOW_TRACKING_URI` | Training | set via CI/CD variable |
 | `train_rotation_degrees` | `conf/train_model.yaml` | `60` |
 | `train_rotation_prob` | `conf/train_model.yaml` | `0.8` |

@@ -25,8 +25,15 @@ class Settings(BaseSettings):
     PRED_MODEL_UUID: str = "mnist-local-001"
     PRED_MODEL_PATH: str = "artifacts/model.pth"
 
-    # CORS controls (safe defaults for public demo without credentialed cross-site requests)
-    CORS_ALLOW_ORIGINS: str = "*"
+    # CORS controls: restrict browser access to owned domains + localhost for local dev
+    CORS_ALLOW_ORIGINS: str = (
+        "https://handwriting.kooexperience.com,"
+        "https://kooexperience.com,"
+        "http://localhost:8000,"
+        "http://127.0.0.1:8000,"
+        "http://localhost:8080,"
+        "http://127.0.0.1:8080"
+    )
     CORS_ALLOW_CREDENTIALS: bool = False
     CORS_ALLOW_METHODS: str = "*"
     CORS_ALLOW_HEADERS: str = "*"
@@ -35,6 +42,13 @@ class Settings(BaseSettings):
     MAX_UPLOAD_BYTES: int = 1_048_576
     MAX_BATCH_FILES: int = 16
     ALLOWED_IMAGE_CONTENT_TYPES: str = "image/png,image/jpeg,image/jpg"
+
+    # App-level per-IP throttling for inference routes
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_REQUESTS: int = 60
+    RATE_LIMIT_WINDOW_SECONDS: int = 60
+    RATE_LIMIT_PATH_PREFIXES: str = "/api/v1/model/predict,/api/v1/model/batch"
+    RATE_LIMIT_METHODS: str = "POST"
 
     model_config = SettingsConfigDict(env_file=".env", extra ="ignore")
 
