@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Handwriting Lab</title>
+  <meta name="description" content="Draw a digit from 0 to 9 and a small neural network guesses it, even if you draw it sideways." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link href="/fonts/fonts.css" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -281,13 +283,34 @@
       border: 1px solid var(--border);
       border-radius: 10px;
       background: #0b0b0b;
-      padding: 12px;
-      white-space: pre-wrap;
-      font-size: 13px;
+      padding: 20px 24px;
+      font-size: 14px;
       color: var(--text);
-      max-height: 620px;
-      overflow: auto;
+      max-width: 72ch;
     }
+    .guide-box h3 { font-size: 15px; font-weight: 600; margin: 24px 0 8px; }
+    .guide-box h3:first-child { margin-top: 0; }
+    .guide-box p, .guide-box ul, .guide-box ol { margin: 0 0 10px; }
+    .guide-box ul, .guide-box ol { padding-left: 20px; }
+    .guide-box li { margin: 2px 0; }
+    .guide-box code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12.5px;
+      background: #1a1a1a;
+      border-radius: 4px;
+      padding: 1px 5px;
+      overflow-wrap: anywhere;
+    }
+
+    .site-footer {
+      border-top: 1px solid var(--border);
+      margin-top: 32px;
+      padding: 20px 0;
+      font-size: 13px;
+      color: #9aa3ad;
+    }
+    .site-footer a { color: #9aa3ad; text-decoration: underline; text-underline-offset: 2px; }
+    .site-footer a:hover { color: var(--text); }
 
     @media (max-width: 1024px) {
       .layout { grid-template-columns: 1fr; }
@@ -309,7 +332,7 @@
       .btn { width: 100%; height: 44px; }
       .metrics { grid-template-columns: 1fr; }
       table { min-width: 620px; }
-      .guide-box { max-height: none; }
+      .guide-box { padding: 16px; }
     }
 
     @media (max-width: 480px) {
@@ -410,6 +433,15 @@
       </div>
     </section>
   </div>
+
+  <footer class="site-footer">
+    <div class="container" style="padding-bottom:0;">
+      Handwriting Lab is run by Koo Haoming (individual, Singapore).
+      <a href="/privacy">Privacy</a> ·
+      <a href="mailto:privacy@kooexperience.com">privacy@kooexperience.com</a> ·
+      <a href="https://github.com/haomingkoo/handwriting-lab" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </footer>
 
   <script>
     const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
@@ -657,12 +689,47 @@
       }
     }
 
+    // Small renderer for the subset the guide uses: headings, lists, paragraphs, inline code.
+    function renderMarkdown(md) {
+      const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const inline = (t) => esc(t)
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+      const html = [];
+      let list = null;
+      let para = [];
+      const flushPara = () => { if (para.length) { html.push(`<p>${inline(para.join(" "))}</p>`); para = []; } };
+      const flushList = () => { if (list) { html.push(`</${list}>`); list = null; } };
+      for (const raw of md.split("\n")) {
+        const line = raw.trim();
+        const heading = line.match(/^(#{1,3})\s+(.*)$/);
+        const bullet = line.match(/^[-*]\s+(.*)$/);
+        const numbered = line.match(/^\d+\.\s+(.*)$/);
+        if (!line) { flushPara(); flushList(); continue; }
+        if (heading) {
+          flushPara(); flushList();
+          // The panel already titles the guide, so the document's own H1 is dropped.
+          if (heading[1].length > 1) html.push(`<h3>${inline(heading[2])}</h3>`);
+        } else if (bullet || numbered) {
+          flushPara();
+          const tag = bullet ? "ul" : "ol";
+          if (list !== tag) { flushList(); html.push(`<${tag}>`); list = tag; }
+          html.push(`<li>${inline((bullet || numbered)[1])}</li>`);
+        } else {
+          flushList();
+          para.push(line);
+        }
+      }
+      flushPara(); flushList();
+      return html.join("");
+    }
+
     async function loadPipelineGuide() {
       const guideBox = document.getElementById("guideBox");
       try {
         const response = await fetch("/docs/training_pipeline.md", { cache: "no-cache" });
         if (!response.ok) throw new Error("pipeline doc not found");
-        guideBox.textContent = await response.text();
+        guideBox.innerHTML = renderMarkdown(await response.text());
       } catch (error) {
         guideBox.textContent = `Pipeline guide unavailable: ${error.message}`;
       }
