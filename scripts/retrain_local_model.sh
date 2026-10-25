@@ -45,7 +45,10 @@ RAILWAY_ARTIFACT_DIR="${RAILWAY_ARTIFACT_DIR:-${ROOT_DIR}/artifacts}"
 RAILWAY_MODEL_PATH="${RAILWAY_MODEL_PATH:-${RAILWAY_ARTIFACT_DIR}/model.pth}"
 
 UPLOAD_TO_GCS="${UPLOAD_TO_GCS:-false}"
-GCS_TARGET_PATH="${GCS_TARGET_PATH:-gs://aiap21-aut0/haoming_koo/inference/model.pth}"
+GCS_TARGET_PATH="${GCS_TARGET_PATH:-}"
+if [[ "${UPLOAD_TO_GCS}" == "true" ]]; then
+    : "${GCS_TARGET_PATH:?Set GCS_TARGET_PATH (gs://bucket/path/model.pth) when UPLOAD_TO_GCS=true}"
+fi
 
 echo "=== Local Retrain Configuration ==="
 echo "ROOT_DIR=${ROOT_DIR}"

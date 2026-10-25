@@ -1,6 +1,6 @@
-# AIAP DSP MLOps — MNIST
+# Handwriting Lab — MNIST
 
-End-to-end MNIST digit classification: training, inference API, and a custom FastAPI-served web app.
+End-to-end MNIST digit classification: training, inference API, and a custom FastAPI-served web app. Started as a course project.
 
 ---
 
@@ -169,7 +169,7 @@ Key options:
 - `ROTATION_DEGREES`: max random rotation angle
 - `ROTATION_PROB`: chance to apply rotation per sample
 - `INVERT_PROB`: chance to invert pixel values per sample
-- `UPLOAD_TO_GCS=true`: optionally upload staged model after local training
+- `UPLOAD_TO_GCS=true`: optionally upload staged model after local training; requires `GCS_TARGET_PATH` (e.g. `gs://your-bucket/inference/model.pth`)
 
 Training-time augmentation config also exists in `conf/train_model.yaml`:
 - `enable_train_augmentation`
@@ -188,72 +188,9 @@ The FastAPI web app (`/`) includes:
 
 ---
 
-## CI/CD pipeline (`.gitlab-ci.yml`)
+## Deploy
 
-### Stage overview
-
-| Stage | Jobs | Trigger |
-|---|---|---|
-| `build` | `uv-env:build` | push to `main` or `dev` |
-| `test` | `ruff-lint:test`, `pytest:test` (parallel) | push to `main` or `dev` |
-| `build-images` | `build-training-image`, `build-inference-image` (parallel) | push to `main` only |
-| `deploy-train` | `mnist-train-model` | push to `main` only |
-| `check` | `cron-check` | schedule (`model_update` scope) |
-| `deploy-inference` | `pull-model` → `upload-model` → `mnist-deploy-inference` | schedule (`model_update` scope) |
-
-### Two pipeline flows
-
-The stages above are split across two independent triggers.
-
-#### Push pipeline (`main` / `dev`)
-
-```
-build  →  test  →  build-images  →  deploy-train
-```
-
-- `build` runs `uv sync --group dev --group training --group backend`.
-- `test` runs `ruff` and `pytest` in parallel. Both jobs use the venv cached from `build`.
-- `build-images` and `deploy-train` are gated to **`main` only**; pushing to `dev` stops after `test`.
-- `build-images` builds both the training and inference images and pushes them to Artifact Registry (`asia-southeast1`).
-- `deploy-train` creates a Cloud Run **job** that mounts the shared NFS `/data` volume, symlinks the local data directory, and runs `python src/train_model.py`. MLflow credentials and experiment name are injected as env vars.
-
-#### Scheduled pipeline (model-update cron)
-
-```
-cron-check  →  pull-model  →  upload-model  →  mnist-deploy-inference
-```
-
-- Runs on a GitLab schedule with `$JOB_SCOPE == "model_update"` (e.g. every 6 hours).
-- `cron-check` queries the MLflow REST API for the latest registered version of the model. It compares that against the `MODEL_VER` CI/CD variable:
-  - **Same version** → cancels the pipeline via the GitLab API. Nothing else runs.
-  - **New version** → updates `MODEL_VER` in GitLab project variables via the API, then continues.
-- `pull-model` downloads the `@champion` model artifact (`model.pth`) from MLflow.
-- `upload-model` copies `model.pth` to `gs://aiap21-aut0/haoming_koo/inference/` on GCS. Authenticates via a base64-encoded GCP service account key.
-- `mnist-deploy-inference` deploys (or updates) the Cloud Run **service**. The service mounts the GCS bucket at `/bucket`, so FastAPI reads the model at `PRED_MODEL_PATH=/bucket/haoming_koo/inference/model.pth`. The current `MODEL_VER` is passed as `PRED_MODEL_UUID` for version tracking.
-
-### Image registry
-
-Both images live in Artifact Registry (`asia-southeast1-docker.pkg.dev`):
-
-| Image | Containerfile |
-|---|---|
-| `mnist-training-haoming_koo:latest` | `train_model.Containerfile` |
-| `mnist-inference-haoming_koo:latest` | `inference.Containerfile` |
-
-### Required CI/CD variables
-
-These must be set as **variables** in the GitLab project (`Settings → CI/CD → Variables`):
-
-| Variable | Used by |
-|---|---|
-| `GCP_PROJECT_ID` | All GCP-facing jobs |
-| `GCP_SERVICE_ACCOUNT_KEY` | Image push, GCS upload, Cloud Run deploy (base64-encoded JSON key) |
-| `MLFLOW_TRACKING_URI` | Training container, `cron-check` |
-| `MLFLOW_TRACKING_USERNAME` / `MLFLOW_TRACKING_PASSWORD` | Training container, `cron-check` |
-| `MODEL_NAME` | Training container, `cron-check` (registered model name in MLflow) |
-| `MLFLOW_EXPERIMENT_NAME` | Training container, `pull-model` (used in `models:/…@champion` URI) |
-| `MODEL_VER` | Updated by `cron-check`; passed to inference as `PRED_MODEL_UUID` |
-| `CI_TOKEN` | `cron-check` — personal/project token for GitLab API calls (cancel pipeline, update variable) |
+Railway builds `inference.Containerfile` and deploys every push to `main`. The served model is the committed `artifacts/model.pth`.
 
 ---
 
@@ -269,7 +206,7 @@ These must be set as **variables** in the GitLab project (`Settings → CI/CD �
 | `RATE_LIMIT_ENABLED` | FastAPI container | `true` |
 | `RATE_LIMIT_REQUESTS` | FastAPI container | `60` |
 | `RATE_LIMIT_WINDOW_SECONDS` | FastAPI container | `60` |
-| `MLFLOW_TRACKING_URI` | Training | set via CI/CD variable |
+| `MLFLOW_TRACKING_URI` | Training | your MLflow server |
 | `train_rotation_degrees` | `conf/train_model.yaml` | `60` |
 | `train_rotation_prob` | `conf/train_model.yaml` | `0.8` |
 | `train_invert_prob` | `conf/train_model.yaml` | `0.1` |

@@ -156,8 +156,7 @@ def main() -> None:
 
     payload = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "model_path": str(model_path),
-        "data_dir": str(data_dir),
+        "model_path": model_path.name,
         "split": args.split,
         "device": str(device),
         "batch_size": int(args.batch_size),
