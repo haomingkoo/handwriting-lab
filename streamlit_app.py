@@ -80,7 +80,7 @@ def apply_custom_theme() -> None:
     st.markdown(
         f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@font-face {{ font-family: 'Inter'; font-style: normal; font-weight: 300 700; font-display: swap; src: url('app/static/inter-latin-normal.woff2') format('woff2'); }}
 
 :root {{
   --app-bg: {ui_bg};

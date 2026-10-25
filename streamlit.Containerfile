@@ -12,6 +12,8 @@ COPY streamlit_app.py ./
 COPY docs/ ./docs/
 COPY reports/ ./reports/
 COPY artifacts/ ./artifacts/
+COPY static/ ./static/
+COPY .streamlit/ ./.streamlit/
 
 # Run Streamlit as non-root user.
 RUN adduser --disabled-password --gecos '' appuser && \

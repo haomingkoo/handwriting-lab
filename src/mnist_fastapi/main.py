@@ -9,6 +9,7 @@ import fastapi
 import mnist
 from fastapi import responses
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 import mnist_fastapi
 from mnist_fastapi.rate_limit import InMemoryRateLimiter
@@ -130,6 +131,9 @@ APP_ROOT = Path(__file__).resolve().parents[2]
 WEB_INDEX_PATH = APP_ROOT / "src" / "mnist_fastapi" / "web" / "index.html"
 REPORT_PATH = APP_ROOT / "reports" / "evaluation_latest.json"
 PIPELINE_DOC_PATH = APP_ROOT / "docs" / "training_pipeline.md"
+FONTS_DIR = APP_ROOT / "src" / "mnist_fastapi" / "web" / "fonts"
+
+APP.mount("/fonts", StaticFiles(directory=FONTS_DIR), name="fonts")
 
 
 @APP.get("/", include_in_schema=False)
