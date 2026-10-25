@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import ipaddress
 import logging
+import os
 from pathlib import Path
 
 import fastapi
@@ -21,9 +23,14 @@ mnist.general_utils.setup_logging(
 )
 
 API_V1_STR = mnist_fastapi.config.SETTINGS.API_V1_STR
+IS_PRODUCTION = bool(os.environ.get("RAILWAY_ENVIRONMENT")) or (
+    os.environ.get("ENV", "").lower() == "production"
+)
 APP = fastapi.FastAPI(
     title=mnist_fastapi.config.SETTINGS.API_NAME,
-    openapi_url=f"{API_V1_STR}/openapi.json",
+    docs_url=None if IS_PRODUCTION else "/docs",
+    redoc_url=None if IS_PRODUCTION else "/redoc",
+    openapi_url=None if IS_PRODUCTION else f"{API_V1_STR}/openapi.json",
 )
 
 API_ROUTER = fastapi.APIRouter()
@@ -70,19 +77,36 @@ rate_limiter = InMemoryRateLimiter(
 )
 
 
-def _get_request_ip(request: fastapi.Request) -> str:
-    """Resolve client IP from common proxy headers or socket peer."""
-    for header_name in ("cf-connecting-ip", "x-real-ip", "x-forwarded-for"):
-        raw_value = (request.headers.get(header_name) or "").strip()
-        if not raw_value:
-            continue
-        if header_name == "x-forwarded-for":
-            return raw_value.split(",")[0].strip()
-        return raw_value
+# https://www.cloudflare.com/ips/
+CLOUDFLARE_NETWORKS = tuple(
+    ipaddress.ip_network(cidr)
+    for cidr in (
+        "173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22",
+        "141.101.64.0/18", "108.162.192.0/18", "190.93.240.0/20", "188.114.96.0/20",
+        "197.234.240.0/22", "198.41.128.0/17", "162.158.0.0/15", "104.16.0.0/13",
+        "104.24.0.0/14", "172.64.0.0/13", "131.0.72.0/22", "2400:cb00::/32",
+        "2606:4700::/32", "2803:f800::/32", "2405:b500::/32", "2405:8100::/32",
+        "2a06:98c0::/29", "2c0f:f248::/32",
+    )
+)
 
-    if request.client and request.client.host:
-        return request.client.host
-    return "unknown"
+
+def _is_cloudflare(ip: str) -> bool:
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return any(addr in network for network in CLOUDFLARE_NETWORKS)
+
+
+def _get_request_ip(request: fastapi.Request) -> str:
+    """Right-most XFF hop is Railway's; trust CF-Connecting-IP only if that hop is Cloudflare."""
+    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[-1].strip()
+    peer = forwarded or (request.client.host if request.client else "")
+    cf_ip = (request.headers.get("cf-connecting-ip") or "").strip()
+    if cf_ip and _is_cloudflare(peer):
+        return cf_ip
+    return peer or "unknown"
 
 
 @APP.middleware("http")
