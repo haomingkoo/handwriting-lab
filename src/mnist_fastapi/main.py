@@ -127,6 +127,23 @@ async def enforce_rate_limit(request: fastapi.Request, call_next):
         response.headers[header_name] = header_value
     return response
 
+
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Content-Security-Policy": "frame-ancestors 'none'",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+}
+
+
+@APP.middleware("http")
+async def add_security_headers(request: fastapi.Request, call_next):
+    """Add basic security headers to every response."""
+    response = await call_next(request)
+    for header_name, header_value in SECURITY_HEADERS.items():
+        response.headers.setdefault(header_name, header_value)
+    return response
+
 APP_ROOT = Path(__file__).resolve().parents[2]
 WEB_INDEX_PATH = APP_ROOT / "src" / "mnist_fastapi" / "web" / "index.html"
 REPORT_PATH = APP_ROOT / "reports" / "evaluation_latest.json"
