@@ -192,6 +192,18 @@ def serve_privacy():
     return responses.FileResponse(WEB_DIR / "privacy.html")
 
 
+@APP.get("/terms", include_in_schema=False)
+def serve_terms():
+    """Serve the terms of use."""
+    return responses.FileResponse(WEB_DIR / "terms.html")
+
+
+@APP.get("/site.css", include_in_schema=False)
+def serve_stylesheet():
+    """Serve the shared stylesheet for the app and legal pages."""
+    return responses.FileResponse(WEB_DIR / "site.css", media_type="text/css")
+
+
 @APP.get("/favicon.svg", include_in_schema=False)
 def serve_favicon():
     """Serve the site icon."""
