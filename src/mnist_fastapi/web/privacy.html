@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy · Handwriting Lab</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link href="/fonts/fonts.css" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #080808;
+      color: #f0f0f0;
+      font: 16px/1.65 "Inter", system-ui, sans-serif;
+    }
+    .wrap { max-width: 65ch; margin: 0 auto; padding: 0 20px; }
+    header { border-bottom: 1px solid #1e1e1e; }
+    header .wrap { display: flex; align-items: center; justify-content: space-between; min-height: 56px; }
+    header a { color: #9aa3ad; text-decoration: none; font-size: 14px; }
+    header a:hover { color: #f0f0f0; }
+    header .logo { color: #f0f0f0; font-weight: 700; letter-spacing: .02em; }
+    nav { display: flex; gap: 20px; }
+    main.wrap { padding-block: 40px 24px; }
+    h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 32px 0 8px; }
+    p, ul { margin: 0 0 12px; }
+    ul { padding-left: 20px; }
+    .meta { color: #9aa3ad; font-size: 14px; }
+    a { color: #93c5fd; }
+    a:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; border-radius: 2px; }
+    footer { border-top: 1px solid #1e1e1e; padding: 20px 0; font-size: 13px; color: #9aa3ad; }
+    footer a { color: #9aa3ad; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <a class="logo" href="https://kooexperience.com/">HK</a>
+      <nav>
+        <a href="/">Handwriting Lab</a>
+        <a href="https://kooexperience.com/">Home</a>
+      </nav>
+    </div>
+  </header>
+  <main class="wrap">
+    <h1>Privacy</h1>
+    <p class="meta">Last updated 26 October 2026</p>
+
+    <p>Handwriting Lab is a demo run by Koo Haoming, an individual in Singapore. It has no accounts, no cookies and no analytics.</p>
+
+    <h2>Your drawing</h2>
+    <p>When you press Predict Digit, your browser shrinks the drawing to a 28 by 28 pixel greyscale image and sends only that image to the server. The server uses it to make one prediction and then discards it. Drawings are not saved, and they are not used to train the model.</p>
+
+    <h2>Connection data</h2>
+    <ul>
+      <li>To stop abuse, the server counts requests per IP address for 60 seconds. The count lives in memory and is not written to disk.</li>
+      <li>The server writes ordinary request logs (time, page requested, response status), which can include an IP address.</li>
+      <li>The site is hosted on Railway and served through Cloudflare. Both process connection data, such as your IP address, to deliver the page, under their own privacy policies.</li>
+    </ul>
+
+    <h2>Fonts and third parties</h2>
+    <p>The font is served from this site. The page loads no third-party scripts.</p>
+
+    <h2>Contact</h2>
+    <p>Questions or requests: <a href="mailto:privacy@kooexperience.com">privacy@kooexperience.com</a>.</p>
+  </main>
+  <footer>
+    <div class="wrap">
+      <a href="/">Handwriting Lab</a> · <a href="mailto:privacy@kooexperience.com">privacy@kooexperience.com</a> · <a href="https://github.com/haomingkoo/handwriting-lab">GitHub</a>
+    </div>
+  </footer>
+</body>
+</html>

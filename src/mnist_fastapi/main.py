@@ -169,7 +169,8 @@ async def add_security_headers(request: fastapi.Request, call_next):
     return response
 
 APP_ROOT = Path(__file__).resolve().parents[2]
-WEB_INDEX_PATH = APP_ROOT / "src" / "mnist_fastapi" / "web" / "index.html"
+WEB_DIR = APP_ROOT / "src" / "mnist_fastapi" / "web"
+WEB_INDEX_PATH = WEB_DIR / "index.html"
 REPORT_PATH = APP_ROOT / "reports" / "evaluation_latest.json"
 PIPELINE_DOC_PATH = APP_ROOT / "docs" / "training_pipeline.md"
 FONTS_DIR = APP_ROOT / "src" / "mnist_fastapi" / "web" / "fonts"
@@ -183,6 +184,18 @@ def serve_web():
     if not WEB_INDEX_PATH.exists():
         raise fastapi.HTTPException(status_code=404, detail="Web app not found.")
     return responses.FileResponse(WEB_INDEX_PATH)
+
+
+@APP.get("/privacy", include_in_schema=False)
+def serve_privacy():
+    """Serve the privacy notice."""
+    return responses.FileResponse(WEB_DIR / "privacy.html")
+
+
+@APP.get("/favicon.svg", include_in_schema=False)
+def serve_favicon():
+    """Serve the site icon."""
+    return responses.FileResponse(WEB_DIR / "favicon.svg", media_type="image/svg+xml")
 
 
 @APP.get("/reports/evaluation_latest.json", include_in_schema=False)

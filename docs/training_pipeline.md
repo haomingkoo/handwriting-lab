@@ -36,7 +36,7 @@ This script can:
 - optionally upload to GCS
 
 ## 5. Inference Deployment
-FastAPI (`src/mnist_fastapi`) loads `PRED_MODEL_PATH` at startup and serves:
+FastAPI (`src/mnist_fastapi`) loads the committed model weights at startup and serves:
 - `POST /api/v1/model/predict`
 - `POST /api/v1/model/batch`
 - `GET /api/v1/model/version`
@@ -49,18 +49,7 @@ Recommended public-demo deployment is a single FastAPI service using
 - the browser UI at `/`
 - the inference API under `/api/v1/model/*`
 
-Recommended runtime env vars:
-- `PRED_MODEL_PATH=artifacts/model.pth`
-- `USE_CUDA=false`
-- `USE_MPS=false`
-- `CORS_ALLOW_ORIGINS=https://handwriting.kooexperience.com,https://kooexperience.com,http://localhost:8000,http://127.0.0.1:8000,http://localhost:8080,http://127.0.0.1:8080`
-- `RATE_LIMIT_ENABLED=true`
-- `RATE_LIMIT_REQUESTS=60`
-- `RATE_LIMIT_WINDOW_SECONDS=60`
-
-Notes:
-- The built-in FastAPI web UI is same-origin with the API, so CORS mainly matters for any separate website calling the API from browser JavaScript.
-- The app-level limiter is per-process and per-IP. Keep host/CDN/WAF rate limiting enabled as well if available.
+The web UI and the API share one origin, so other websites cannot call the API from a browser unless they are on the allowed list.
 
 ## 6. UI Prediction Flow
 1. User draws digit in browser canvas
@@ -85,7 +74,7 @@ The web app reads this file and displays:
 Runtime protections currently in the inference service:
 - state-dict-only model loading for safer checkpoint handling
 - upload validation on inference endpoints (type, size, batch count)
-- restricted browser origins via `CORS_ALLOW_ORIGINS`
+- browser calls from other websites are limited to an allowed list
 - per-IP app-level throttling on inference `POST` routes
 
 These controls are suitable for a public demo, but infrastructure-side protections
