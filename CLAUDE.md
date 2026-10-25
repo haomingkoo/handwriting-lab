@@ -16,7 +16,7 @@ SKIP_PROCESS_DATA=true NO_CUDA=true ./scripts/retrain_local_model.sh   # retrain
 
 - Railway project `profound-essence` auto-deploys every push to `main`; there are no watch paths, so docs-only merges rebuild too.
 - Build is `inference.Containerfile` (set in `railway.toml`), `uv sync --frozen --group backend`, so `uv.lock` must stay in sync with `pyproject.toml`.
-- No GitHub CI. `.gitlab-ci.yml` is a leftover course template and does not run.
+- No CI. Run tests and ruff locally before merging.
 
 ## Gotchas
 

@@ -1,7 +1,6 @@
 {
   "generated_at_utc": "2026-02-25T12:53:50.725290+00:00",
-  "model_path": "/Users/koohaoming/aiap-dsp-mlops-mnist-main/data/local-model-export/model.pth",
-  "data_dir": "/Users/koohaoming/aiap-dsp-mlops-mnist-main/data/processed/mnist-pngs-data-aisg-processed",
+  "model_path": "model.pth",
   "split": "test",
   "device": "mps",
   "batch_size": 256,
