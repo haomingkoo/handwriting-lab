@@ -16,7 +16,7 @@ SKIP_PROCESS_DATA=true NO_CUDA=true ./scripts/retrain_local_model.sh   # retrain
 
 - Railway project `profound-essence` auto-deploys every push to `main`; there are no watch paths, so docs-only merges rebuild too.
 - Build is `inference.Containerfile` (set in `railway.toml`), `uv sync --frozen --group backend`, so `uv.lock` must stay in sync with `pyproject.toml`.
-- No CI. Run tests and ruff locally before merging.
+- CI (`.github/workflows/tests.yml`) runs ruff and pytest on every PR; still run them locally first.
 
 ## Gotchas
 
@@ -24,5 +24,5 @@ SKIP_PROCESS_DATA=true NO_CUDA=true ./scripts/retrain_local_model.sh   # retrain
 - `docs/training_pipeline.md` and `reports/evaluation_latest.json` are served to the UI's Pipeline Guide and Evaluation tabs, so editing them changes the live site.
 - The Streamlit app (`streamlit_app.py`, `src/mnist_streamlit/`, `streamlit.Containerfile`) is legacy and not deployed.
 - `pyproject.toml` name `assignment3` is historical; the product is Handwriting Lab.
-- Tests cover data prep only; nothing tests the API routes or inference.
-- The UI self-hosts its font from `src/mnist_fastapi/web/fonts`; do not add third-party font or script hosts (privacy fix #2).
+- Tests cover data prep plus `src/tests/test_api.py` (predict response shape, page chrome).
+- The UI self-hosts its font (Atkinson Hyperlegible) from `src/mnist_fastapi/web/fonts`; do not add third-party font or script hosts (privacy fix #2). Design rules are in `DESIGN.md`.

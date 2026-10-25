@@ -71,7 +71,7 @@ def _read_validated_image_bytes(image_file: fastapi.UploadFile) -> bytes:
     return contents
 
 
-def _predict_single_result(image_bytes: bytes, filename: str | None) -> dict[str, str | float]:
+def _predict_single_result(image_bytes: bytes, filename: str | None) -> dict[str, object]:
     """Run inference for a single image payload and return response object."""
     try:
         image_tensor = _prepare_image_tensor(image_bytes)
@@ -83,8 +83,9 @@ def _predict_single_result(image_bytes: bytes, filename: str | None) -> dict[str
 
     with torch.no_grad():
         output = PRED_MODEL(image_tensor.unsqueeze(0).to(DEVICE))
+    probabilities = output.exp()[0]
     pred = output.argmax(dim=1, keepdim=True)
-    confidence = float(output.exp().max().item())
+    confidence = float(probabilities.max().item())
     pred_str = str(int(pred[0]))
 
     logger.info(
@@ -98,6 +99,8 @@ def _predict_single_result(image_bytes: bytes, filename: str | None) -> dict[str
         "filename": filename or "uploaded.png",
         "prediction": pred_str,
         "confidence": round(confidence, 4),
+        # One probability per digit 0-9, so the UI can show the runners-up.
+        "probabilities": [round(float(p), 4) for p in probabilities.tolist()],
     }
 
 
