@@ -155,7 +155,7 @@ async def enforce_rate_limit(request: fastapi.Request, call_next):
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
-    "Content-Security-Policy": "frame-ancestors 'none'",
+    "Content-Security-Policy": "frame-ancestors 'none'; media-src 'self'",
     "Referrer-Policy": "strict-origin-when-cross-origin",
 }
 
@@ -176,6 +176,7 @@ PIPELINE_DOC_PATH = APP_ROOT / "docs" / "training_pipeline.md"
 FONTS_DIR = APP_ROOT / "src" / "mnist_fastapi" / "web" / "fonts"
 
 APP.mount("/fonts", StaticFiles(directory=FONTS_DIR), name="fonts")
+APP.mount("/media", StaticFiles(directory=WEB_DIR / "media"), name="media")
 
 
 @APP.get("/", include_in_schema=False)
