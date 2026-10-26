@@ -57,3 +57,13 @@ def test_index_has_shared_footer_and_no_internal_labels():
 def test_static_pages_served():
     for path in ("/privacy", "/terms", "/site.css", "/favicon.svg", "/fonts/fonts.css", "/reports/evaluation_latest.json"):
         assert CLIENT.get(path).status_code == 200, path
+
+
+def test_tour_video_served_and_allowed_by_csp():
+    page = CLIENT.get("/")
+    assert "media-src 'self'" in page.headers["content-security-policy"]
+    assert 'id="tourOpen"' in page.text
+    for path, kind in (("/media/handwriting.mp4", "video/mp4"), ("/media/handwriting.webm", "video/webm"), ("/media/handwriting-poster.jpg", "image/jpeg")):
+        response = CLIENT.get(path, headers={"Range": "bytes=0-99"})
+        assert response.status_code == 206, path
+        assert response.headers["content-type"] == kind

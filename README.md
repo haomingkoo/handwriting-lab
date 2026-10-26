@@ -1,4 +1,11 @@
 # Handwriting Lab — MNIST
+<p align="center">
+  <a href="https://handwriting.kooexperience.com"><img src="docs/media/handwriting-preview.webp" width="800" alt="Drawing a 3 and a 7 on the canvas; the model answers each with a large numeral, its confidence and probability bars"></a>
+  <br>
+  <a href="https://handwriting.kooexperience.com/?tour=1">▶ 30-second tour</a> · <a href="https://handwriting.kooexperience.com/">Live app</a> · <a href="https://kooexperience.com/">kooexperience.com</a>
+  <br>
+  <sub>Music: Sascha Ende, ende.app (CC BY 4.0)</sub>
+</p>
 
 End-to-end MNIST digit classification: training, inference API, and a custom FastAPI-served web app. Started as a course project.
 

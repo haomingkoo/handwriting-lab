@@ -122,6 +122,19 @@
     .guide-box p, .guide-box ul, .guide-box ol { margin: 0 0 10px; }
     .guide-box ul, .guide-box ol { padding-left: 20px; display: block; }
     .guide-box li { margin: 2px 0; }
+    .tour-link { margin-top: 8px; min-height: 44px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 16px; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; cursor: pointer; }
+    .tour-link:hover { color: var(--ink); }
+    .tour { width: min(960px, calc(100vw - 32px)); max-width: none; padding: 0; border: 1px solid var(--line); border-radius: var(--r-panel); background: var(--surface); color: var(--ink); }
+    .tour::backdrop { background: rgb(20 20 20 / 0.6); }
+    .tour[open] { animation: tour-in 160ms ease-out; }
+    @keyframes tour-in { from { opacity: 0; transform: translateY(8px); } }
+    @media (prefers-reduced-motion: reduce) { .tour[open] { animation: none; } }
+    .tour-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 16px; }
+    .tour-head h2 { font-size: 16px; }
+    .tour-close { min-width: 44px; padding: 0; font-size: 20px; }
+    .tour video { display: block; width: 100%; aspect-ratio: 16 / 9; background: var(--ink); }
+    .tour-credit { padding: 8px 16px 12px; font-size: 14px; color: var(--muted); }
+
     .guide-box code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; background: var(--sunken); border-radius: 4px; padding: 1px 5px; overflow-wrap: anywhere; }
   </style>
 </head>
@@ -142,6 +155,7 @@
     <div class="intro">
       <h1>Draw a digit from 0 to 9</h1>
       <p>A small neural network, trained on the MNIST set of handwritten digits, guesses what you drew and how sure it is.</p>
+      <button type="button" class="tour-link" id="tourOpen" aria-haspopup="dialog">&#9654; 30-second tour</button>
     </div>
 
     <div class="tabs" role="tablist" aria-label="Sections">
@@ -250,6 +264,18 @@
       </div>
     </section>
   </main>
+
+  <dialog class="tour" id="tour" aria-labelledby="tourTitle">
+    <div class="tour-head">
+      <h2 id="tourTitle">Handwriting Lab in 30 seconds</h2>
+      <button type="button" class="btn tour-close" id="tourClose" aria-label="Close video">&times;</button>
+    </div>
+    <video id="tourVideo" controls preload="none" playsinline poster="/media/handwriting-poster.jpg">
+      <source src="/media/handwriting.webm" type="video/webm" />
+      <source src="/media/handwriting.mp4" type="video/mp4" />
+    </video>
+    <p class="tour-credit">Music: Sascha Ende, ende.app (CC BY 4.0)</p>
+  </dialog>
 
   <footer class="site-footer">
     <div class="wrap">
@@ -611,6 +637,14 @@
     }
 
     resetCanvas();
+
+    // Tour video: native dialog handles Esc, focus trap and focus return.
+    const tour = $('tour');
+    $('tourOpen').addEventListener('click', () => tour.showModal());
+    $('tourClose').addEventListener('click', () => tour.close());
+    tour.addEventListener('click', (e) => { if (e.target === tour) tour.close(); });
+    tour.addEventListener('close', () => { $('tourVideo').pause(); $('tourOpen').focus(); });
+    if (new URLSearchParams(location.search).get('tour') === '1') tour.showModal();
   </script>
 </body>
 </html>
