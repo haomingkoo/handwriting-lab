@@ -67,3 +67,15 @@ def test_tour_video_served_and_allowed_by_csp():
         response = CLIENT.get(path, headers={"Range": "bytes=0-99"})
         assert response.status_code == 206, path
         assert response.headers["content-type"] == kind
+
+
+def test_unknown_page_gets_styled_404_but_api_stays_json():
+    page = CLIENT.get("/no-such-page")
+    assert page.status_code == 404
+    assert "text/html" in page.headers["content-type"]
+    assert 'href="/"' in page.text
+    assert "https://kooexperience.com/" in page.text
+
+    api = CLIENT.get("/api/v1/no-such-endpoint")
+    assert api.status_code == 404
+    assert api.json() == {"detail": "Not Found"}

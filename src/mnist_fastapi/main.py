@@ -10,8 +10,10 @@ from pathlib import Path
 import fastapi
 import mnist
 from fastapi import responses
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import mnist_fastapi
 from mnist_fastapi.rate_limit import InMemoryRateLimiter
@@ -225,6 +227,14 @@ def serve_pipeline_doc():
     if not PIPELINE_DOC_PATH.exists():
         raise fastapi.HTTPException(status_code=404, detail="Pipeline guide not found.")
     return responses.FileResponse(PIPELINE_DOC_PATH, media_type="text/markdown")
+
+
+@APP.exception_handler(StarletteHTTPException)
+async def html_not_found(request: fastapi.Request, exc: StarletteHTTPException):
+    """Styled 404 for page routes; API and other errors keep the JSON body."""
+    if exc.status_code == 404 and not request.url.path.startswith("/api/"):
+        return responses.FileResponse(WEB_DIR / "404.html", status_code=404)
+    return await http_exception_handler(request, exc)
 
 
 @APP.get("/healthz", status_code=fastapi.status.HTTP_200_OK)
