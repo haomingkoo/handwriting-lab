@@ -219,7 +219,7 @@ dev = [
 ]
 training = [
     { name = "hydra-core", specifier = "==1.3.8" },
-    { name = "hydra-optuna-sweeper", specifier = "==1.2.0" },
+    { name = "hydra-optuna-sweeper", specifier = "==1.3.0" },
     { name = "jsonlines", specifier = "==4.0.0" },
     { name = "matplotlib", specifier = "==3.10.1" },
     { name = "mlflow", specifier = "==3.1.0" },
@@ -1047,15 +1047,15 @@ wheels = [
 
 [[package]]
 name = "hydra-optuna-sweeper"
-version = "1.2.0"
+version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "hydra-core" },
     { name = "optuna" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/38/64/018134a44a124f56e27245dd8154900a6adafb1459a38ddea0f81e22f8d7/hydra-optuna-sweeper-1.2.0.tar.gz", hash = "sha256:f20b56dfdc4db9f84f3b502c8e60a5269967197c4df4c28653cf17f71b2136ce", size = 7914, upload-time = "2022-05-17T22:19:24.388Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0a/ec/daca4f3b569b4d5bee9175c9506433dd76322f11bd0a11bf4d9c75665546/hydra_optuna_sweeper-1.3.0.tar.gz", hash = "sha256:824723b51ef3b14aa1c81f2925951911a9d803dd582572b9faac3421b4f93487", size = 11229, upload-time = "2026-09-14T19:28:12.528Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b3/25/1eccad47c39da342988fe501b174652c37676ab539baeae9a73444932d13/hydra_optuna_sweeper-1.2.0-py3-none-any.whl", hash = "sha256:b012d94c1dc86edfc33dcf3c7f10e9d2ca6b27040dccb7fdccbb8888b1cd6eef", size = 8486, upload-time = "2022-05-17T22:19:21.863Z" },
+    { url = "https://files.pythonhosted.org/packages/99/4f/911053ab42bdd38d81cadbef2f2a3b6bc12b1af66a2cb9df63b0cd884fe9/hydra_optuna_sweeper-1.3.0-py3-none-any.whl", hash = "sha256:55c44838bee547c9083ed5e1fba92e61ed3ab436688085d3edfaaad70d66f1bd", size = 9033, upload-time = "2026-09-14T19:28:11.394Z" },
 ]
 
 [[package]]
